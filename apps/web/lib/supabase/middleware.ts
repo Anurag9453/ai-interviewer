@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/", "/login", "/auth"];
+/**
+ * Routes reachable without a session. `/about` and `/refund-policy` are
+ * customer-facing pages a signed-out visitor must be able to read — omitting
+ * them here would silently bounce both to /login, which is exactly the kind
+ * of thing that isn't noticed until someone links to the refund policy.
+ */
+const PUBLIC_PATHS = ["/", "/login", "/auth", "/about", "/refund-policy"];
 
 // Manual/E2E verification only — off by default, never set in a real
 // deployment. Lets /interview render against the client-side mock session
@@ -9,11 +15,22 @@ const PUBLIC_PATHS = ["/", "/login", "/auth"];
 // interview flow is unaffected; this only widens PUBLIC_PATHS.
 if (process.env.NEXT_PUBLIC_E2E_MOCK === "1") PUBLIC_PATHS.push("/interview");
 
+/**
+ * Exported so the public-surface contract is unit-testable without booting
+ * Next or Supabase — `updateSession` itself can't be imported under a plain
+ * test runner (it constructs a Supabase client and needs a NextRequest).
+ */
+export function isPublicPath(pathname: string, publicPaths: readonly string[] = PUBLIC_PATHS): boolean {
+  return publicPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+export { PUBLIC_PATHS };
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublic = isPublicPath(pathname);
   // Short-circuit before touching Supabase at all — the E2E-mock path has no
   // real project configured, and constructing the client on an empty
   // URL/key throws synchronously.

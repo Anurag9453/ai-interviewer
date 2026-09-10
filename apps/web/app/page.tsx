@@ -2,6 +2,25 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { buttonClass, Card, Eyebrow } from "@/components/ui";
+import { PublicFooter } from "@/components/PublicFooter";
+
+/**
+ * Next uses thrown errors for control flow, tagged with a `digest`. These must
+ * always propagate: catching them turns a working framework mechanism into a
+ * silent failure. Matched by prefix because NEXT_REDIRECT carries a suffix.
+ */
+const NEXT_CONTROL_FLOW_DIGESTS = ["NEXT_REDIRECT", "NEXT_NOT_FOUND", "DYNAMIC_SERVER_USAGE"];
+
+function isNextControlFlow(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  if ("digest" in err && typeof err.digest === "string") {
+    if (NEXT_CONTROL_FLOW_DIGESTS.some((d) => err.digest === d || (err.digest as string).startsWith(`${d};`))) {
+      return true;
+    }
+  }
+  // DynamicServerError isn't always digest-tagged depending on where it's raised.
+  return err instanceof Error && err.constructor.name === "DynamicServerError";
+}
 
 /**
  * Landing page. Its whole job is to make a first-time visitor understand
@@ -21,20 +40,23 @@ export default async function Home() {
       const { data: claims } = await supabase.auth.getClaims();
       if (claims?.claims?.sub) redirect("/dashboard");
     } catch (err) {
-      // `redirect()` throws a NEXT_REDIRECT control-flow error by design —
-      // it must be rethrown, not swallowed, or the redirect silently stops
-      // working for signed-in users.
-      if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
-      if (typeof err === "object" && err !== null && "digest" in err
-          && typeof err.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-        throw err;
-      }
+      // Next signals control flow through thrown errors, and swallowing any of
+      // them breaks the framework rather than protecting the page:
+      //   NEXT_REDIRECT        — the redirect() above; swallowing it stops
+      //                          signed-in users being sent to the dashboard.
+      //   DYNAMIC_SERVER_USAGE — cookies() telling Next this route can't be
+      //                          statically prerendered; swallowing it would
+      //                          let / be cached as static HTML, so the
+      //                          per-request auth check would never run.
+      // Only a genuine failure (e.g. bad Supabase config) falls through.
+      if (isNextControlFlow(err)) throw err;
       console.error("landing page auth check failed; rendering the public page", err);
     }
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-5 pb-20 pt-14 sm:px-6 sm:pt-20">
+    <>
+      <main className="mx-auto max-w-5xl px-5 pb-4 pt-14 sm:px-6 sm:pt-20">
       <section className="mx-auto max-w-2xl text-center animate-rise">
         <Eyebrow>Voice mock interviews</Eyebrow>
         <h1 className="mt-3 text-[34px] font-semibold leading-[1.1] sm:text-5xl">
@@ -120,6 +142,8 @@ export default async function Home() {
           Your resume and uploads stay private to your account.
         </p>
       </section>
-    </main>
+      </main>
+      <PublicFooter />
+    </>
   );
 }
