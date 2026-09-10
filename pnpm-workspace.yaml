@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "content"
+
+# Explicit allowlist rather than blanket script execution.
+#   esbuild             — tsx's bundler
+#   onnxruntime-node    — native runtime for local VAD inference
+#   @livekit/local-inference — fetches the VAD/turn-detector models
+allowBuilds:
+  esbuild: true
+  onnxruntime-node: true
+  "@livekit/local-inference": true

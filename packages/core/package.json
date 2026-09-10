@@ -1,0 +1,25 @@
+{
+  "name": "@ai/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json --emitDeclarationOnly false --outDir dist",
+    "test": "node --import tsx --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.33.4",
+    "@anthropic-ai/sdk": "^0.124.0",
+    "razorpay": "^2.9.8",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2"
+  }
+}

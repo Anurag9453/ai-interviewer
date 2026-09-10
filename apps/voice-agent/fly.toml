@@ -1,0 +1,28 @@
+app = "ai-interviewer-voice"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # A voice session is a long-lived stateful connection: never scale a machine
+  # to zero underneath one, and never auto-stop mid-interview.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.http_options.response]
+    pristine = true
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "3s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

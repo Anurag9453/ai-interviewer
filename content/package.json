@@ -1,0 +1,22 @@
+{
+  "name": "@ai/content",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "generate": "tsx scripts/generate-plan.ts",
+    "validate": "tsx scripts/validate-pool.ts",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@ai/core": "workspace:*",
+    "postgres": "^3.4.9",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

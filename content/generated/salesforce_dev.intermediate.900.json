@@ -1,0 +1,1255 @@
+{
+  "plan": {
+    "planKey": "salesforce_dev|intermediate|depth|900|handauthored.v1",
+    "categoryId": "salesforce_dev",
+    "difficulty": "intermediate",
+    "mode": "depth",
+    "durationS": 900,
+    "persona": {
+      "name": "Priya",
+      "style": "Senior Salesforce engineer who runs this interview a few times a week. Warm but brisk. Never praises an answer, never teaches, never summarises what the candidate just said.",
+      "voiceId": "cartesia:priya-en"
+    },
+    "sections": [
+      {
+        "id": "sec.core",
+        "title": "Platform core",
+        "goal": "Establish depth on transaction behaviour, bulk-safe code, and querying",
+        "budgetS": 390,
+        "topicIds": [
+          "sfdev.governor_limits",
+          "sfdev.bulkification",
+          "sfdev.soql_relationships"
+        ]
+      },
+      {
+        "id": "sec.applied",
+        "title": "Applied engineering",
+        "goal": "Probe judgement under constraints, and where correctness is invisible at runtime",
+        "budgetS": 390,
+        "topicIds": [
+          "sfdev.async_apex",
+          "sfdev.testing",
+          "sfdev.security_sharing"
+        ]
+      }
+    ],
+    "dimensionWeights": {
+      "correctness": 0.2,
+      "relevance": 0.1,
+      "depth": 0.22,
+      "clarity": 0.13,
+      "technical_accuracy": 0.15,
+      "problem_solving": 0.2
+    },
+    "promptVersion": "handauthored/2026-09-09.1"
+  },
+  "questions": [
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "gl.batch-passes-small",
+      "topicId": "sfdev.governor_limits",
+      "text": "A job fails with a limit exception on real data, but the same code runs fine when you test it on a handful of records. What is going on?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that limits are consumed per transaction rather than per record or per job",
+          "probe": "What is the scope those limits apply to?"
+        },
+        {
+          "id": "s2",
+          "signal": "connects the larger volume to either repeated execution or accumulation inside one transaction",
+          "probe": "Why would more records change anything?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes inspecting which limit was actually consumed rather than guessing",
+          "probe": "How would you find out which one you hit?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the fix is restructuring how the work is divided rather than trimming it slightly",
+          "probe": "So what actually changes in the code?"
+        }
+      ],
+      "answerKey": {
+        "weak": "The test data was too small, so I would test with more records next time and see if it breaks again.",
+        "competent": "Limits are per transaction, so more records means more queries or more DML in the same execution. I would check the logs to see which limit was hit and then bulkify the code.",
+        "excellent": "Limits are per transaction, so low volume never reached them. I would read the limit consumption in the logs to confirm which one, then restructure so the work is divided across transactions rather than shaving a little off each pass, because trimming only moves the failure threshold."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "gl.cpu-small-data",
+      "topicId": "sfdev.governor_limits",
+      "text": "A page is slow and sometimes errors out. The logs point at a CPU time exception, but the record volume involved is small. Where do you look?",
+      "kind": "debug",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that CPU time is consumed by logic executed rather than by the number of rows touched",
+          "probe": "What actually consumes that particular limit?"
+        },
+        {
+          "id": "s2",
+          "signal": "names candidate causes such as nested iteration, repeated scanning of collections, or a long chain of automation firing on save",
+          "probe": "What kind of code burns it?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes narrowing the cause by measuring rather than by reading the whole codebase",
+          "probe": "How would you narrow it down?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that moving the work into asynchronous execution raises the ceiling without reducing the work being done",
+          "probe": "Would making it asynchronous solve it?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would move the logic into an asynchronous job so it gets more time to finish running.",
+        "competent": "CPU time comes from the logic itself, not the row count. I would look for nested loops or repeated work over collections, and check whether other automation is firing on the same save.",
+        "excellent": "CPU time tracks the logic executed, so small data pointing at CPU suggests nested iteration or a long automation chain on save. I would measure where the time goes before changing anything, and I would not reach for asynchronous execution first, since that raises the ceiling without removing the work."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "gl.raise-the-limit-request",
+      "topicId": "sfdev.governor_limits",
+      "text": "A stakeholder asks you to raise the limit your code keeps hitting so the feature can ship this week. How do you respond?",
+      "kind": "tradeoff",
+      "scores": [
+        "correctness",
+        "clarity",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that these ceilings are not something the team can adjust on request",
+          "probe": "Is that something you can change?"
+        },
+        {
+          "id": "s2",
+          "signal": "reframes the problem as reducing consumption rather than raising the ceiling",
+          "probe": "So what is the actual problem to solve?"
+        },
+        {
+          "id": "s3",
+          "signal": "names a concrete restructuring that would lower consumption",
+          "probe": "What would you change concretely?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers what the restructuring costs, such as added complexity, later completion, or intermediate state being visible",
+          "probe": "What does that approach cost you?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would raise a support case asking for the limit to be increased for our organisation so we can ship on time.",
+        "competent": "Those ceilings are not adjustable, so the real work is using less. I would find where the consumption is concentrated and restructure that part, then re-test with realistic volume.",
+        "excellent": "They are not adjustable, so the question becomes how to consume less. I would restructure the heaviest part, most likely moving repeated work out of the per-record path. I would also say plainly that splitting it across transactions means the result lands later and partial state becomes visible, which the stakeholder needs to agree to."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "gl.two-triggers-same-object",
+      "topicId": "sfdev.governor_limits",
+      "text": "Two separate pieces of automation on the same object each query the same parent records. Why does that matter, and what would you do about it?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that both run inside the same transaction and therefore share one budget",
+          "probe": "Do those two share anything?"
+        },
+        {
+          "id": "s2",
+          "signal": "names consolidating the queries or holding the fetched data in a shared context so it is read once",
+          "probe": "How would you avoid querying twice?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that a single entry point per object makes the ordering and the total consumption controllable, without requiring any particular framework",
+          "probe": "What is the structural fix?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the risk compounds as unrelated features are added to the same object later",
+          "probe": "Does this get better or worse over time?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It is duplicated work, so I would delete one of the queries and have both pieces of automation share the other one.",
+        "competent": "They run in the same transaction so they share the budget, and the same parent records get read twice. I would consolidate so the parents are queried once and passed to both.",
+        "excellent": "Same transaction, one shared budget, so the duplicate read costs twice. I would route both through a single entry point for the object and fetch the parents once into a shared context. The real reason to do it now is that the next three features on this object will each add their own queries, and nobody will notice until something unrelated starts failing."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "gl.transaction-scope",
+      "topicId": "sfdev.governor_limits",
+      "text": "What does it mean that these limits apply per transaction, and where does a transaction begin and end?",
+      "kind": "definition",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "distinguishes transaction scope from per-record scope and from an organisation-wide allocation",
+          "probe": "What is the alternative it is not?"
+        },
+        {
+          "id": "s2",
+          "signal": "names what opens and closes a transaction, such as a save, a callable entry point, or one asynchronous execution",
+          "probe": "What starts one?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that asynchronous execution is counted separately and runs against a higher ceiling",
+          "probe": "Does asynchronous work share the same budget?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It means there is a cap on how many queries you can run in your organisation before it stops working.",
+        "competent": "The budget resets for each transaction. A save on a record is one transaction, and everything that fires during it shares that budget. Asynchronous work gets its own, with higher ceilings.",
+        "excellent": "It resets per transaction, not per record and not per org, which is why one save with many records is very different from many separate saves. A save, an inbound call, or a single asynchronous execution each open one. Asynchronous executions are counted separately against a higher ceiling, which is why moving work there changes what is possible without changing what the work costs."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "bk.sandbox-to-load",
+      "topicId": "sfdev.bulkification",
+      "text": "A trigger passes every test in your sandbox and then fails during a large data load. Where do you look first?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "identifies a query or a data operation placed inside a loop over the incoming records",
+          "probe": "What in that code makes the record count matter?"
+        },
+        {
+          "id": "s2",
+          "signal": "names which kind of limit the symptom points to rather than guessing at the message",
+          "probe": "Which limit would that trip?"
+        },
+        {
+          "id": "s3",
+          "signal": "states the fix as reading once into a keyed collection and operating once on a list",
+          "probe": "What does the restructured version look like?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that a large load fires the same code repeatedly in chunks, which is why low volume never surfaced it",
+          "probe": "Why did the small test pass?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would open the debug logs and read the error message to see what went wrong during the load.",
+        "competent": "Almost certainly a query or an update sitting inside a loop. I would move it out, gather the ids first, query once into a map, and do a single operation on a list at the end.",
+        "excellent": "A query or DML inside the per-record loop. I would collect the ids, read the related records once into a map keyed on id, and do one operation on a list. Worth saying why the sandbox passed: a big load fires this repeatedly in chunks, so the per-chunk budget was never close at low volume."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "bk.restructure-inherited",
+      "topicId": "sfdev.bulkification",
+      "text": "You inherit a method that queries related records inside a loop over the incoming set. Talk me through how you would restructure it.",
+      "kind": "code_reasoning",
+      "scores": [
+        "depth",
+        "technical_accuracy",
+        "problem_solving",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "describes a first pass that gathers the keys needed before any reading happens",
+          "probe": "What happens before the query?"
+        },
+        {
+          "id": "s2",
+          "signal": "names a map keyed on the relating field so the join happens in memory",
+          "probe": "How do you match parents back to children?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that changes are accumulated into a collection and committed once at the end",
+          "probe": "When does the write happen?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers a case the naive rewrite would still get wrong, such as records whose related field is empty or parents that are missing",
+          "probe": "What would that rewrite still get wrong?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would move the query above the loop so it only runs once instead of running on every iteration of the records.",
+        "competent": "Two passes. First collect the parent ids from the incoming records, then query those parents once into a map keyed on id. Inside the loop I only read from the map, collect the records I changed, and update once at the end.",
+        "excellent": "Gather the parent ids first, query once into a map keyed on id, then loop reading only from memory and accumulating changes into a list for one commit. The part people miss is the records with an empty relating field, and parents the running user cannot see, so I would decide deliberately whether those are skipped or errored rather than letting a null lookup decide it."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "bk.wrong-values-multi-record",
+      "topicId": "sfdev.bulkification",
+      "text": "Your logic gives the right answer for a single record and the wrong answer when several are saved together. What kind of bug is that?",
+      "kind": "debug",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "identifies state being shared across records instead of being scoped to each one",
+          "probe": "What would produce a per-record difference like that?"
+        },
+        {
+          "id": "s2",
+          "signal": "names concrete shapes of the mistake, such as a variable assigned in one iteration and read in the next, or the first record standing in for all of them",
+          "probe": "What does that look like in code?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes reproducing it with a multi-record test before changing anything",
+          "probe": "How would you confirm it?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the failure is silent, producing wrong data rather than an exception, so nothing alerts on it",
+          "probe": "How bad is this compared with hitting a limit?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It is a bulkification problem, so I would rewrite the method to handle a list of records instead of just one record.",
+        "competent": "Something is shared across iterations. Usually a variable set once and reused, or code that reads the first record and applies it to all of them. I would write a test that saves several records at once to reproduce it.",
+        "excellent": "State leaking across records, typically a variable assigned in one iteration and read in another, or the first element treated as representative. I would reproduce it with a multi-record test first. The reason this one is worse than a limit failure is that it throws nothing, so it quietly writes wrong data until somebody reconciles a report."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "bk.single-entry-point-exception",
+      "topicId": "sfdev.bulkification",
+      "text": "You normally route all logic for an object through one entry point. When would you deliberately not do that?",
+      "kind": "tradeoff",
+      "scores": [
+        "relevance",
+        "clarity",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states the reason the single entry point exists, namely controlling ordering and total consumption",
+          "probe": "What is the rule buying you in the first place?"
+        },
+        {
+          "id": "s2",
+          "signal": "names a situation where the cost outweighs it, such as work owned by a separate installed package or a boundary the team does not control",
+          "probe": "So when is it not worth it?"
+        },
+        {
+          "id": "s3",
+          "signal": "reasons from the constraint rather than restating the rule as an absolute",
+          "probe": "How do you decide in a given case?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers what is given up by splitting, such as ordering becoming implicit and consumption becoming harder to attribute",
+          "probe": "What do you lose if you split it?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would always use one entry point because that is the best practice for keeping automation on an object maintainable.",
+        "competent": "The rule exists so ordering is explicit and you can see the total cost in one place. I would break it where the logic belongs to a separate installed package, since I do not own that code.",
+        "excellent": "It exists to make ordering explicit and consumption attributable. I would not force it across a boundary I do not control, like a managed package's own automation, because the coupling costs more than the ordering guarantee is worth. What I would be honest about is what splitting gives up: ordering becomes implicit, and when the budget runs out nobody can tell which side spent it."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "bk.bulk-safe-meaning",
+      "topicId": "sfdev.bulkification",
+      "text": "What does it mean for a piece of Apex to be bulk safe?",
+      "kind": "definition",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that it behaves the same whether one record or many arrive together",
+          "probe": "Safe against what, specifically?"
+        },
+        {
+          "id": "s2",
+          "signal": "names both failure modes it protects against, exhausting the transaction budget and producing wrong per-record results",
+          "probe": "What can go wrong if it is not?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that reads and writes happen once over collections rather than once per record",
+          "probe": "What does the code have to do differently?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It means the code has no queries or updates inside loops so it will not hit the query limits when data is loaded.",
+        "competent": "The same code gives the same result for one record or many. That means reading and writing over collections instead of per record, so you neither exhaust the budget nor mix up records.",
+        "excellent": "It behaves identically for one record and for a full batch. Two distinct failures it guards against: running out of transaction budget, which fails loudly, and carrying state between records, which fails silently and is the more expensive of the two. In practice that means one read and one write over collections, with everything in between working from memory."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "as.callout-on-close",
+      "topicId": "sfdev.async_apex",
+      "text": "You need to call an external system when an opportunity is closed. Walk me through your options.",
+      "kind": "tradeoff",
+      "scores": [
+        "correctness",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the call cannot be made in the same synchronous execution as the save",
+          "probe": "Can you make that call directly in the save?"
+        },
+        {
+          "id": "s2",
+          "signal": "names more than one asynchronous mechanism together with a concrete difference between them, such as what can be passed in or whether further work can be queued",
+          "probe": "What is the actual difference between those?"
+        },
+        {
+          "id": "s3",
+          "signal": "chooses one and ties the choice to the constraint in the question",
+          "probe": "Which would you pick here, and why that one?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers a failure mode of the chosen design, such as the external system being unavailable, repeated delivery, or the record being left inconsistent",
+          "probe": "The external system is down. What happens to that record?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would make the callout from the trigger so the external system is updated as soon as the opportunity closes.",
+        "competent": "You cannot call out synchronously from a save, so it has to be asynchronous. I would use a queued job rather than the older annotation, because it takes real objects as input and can queue follow-up work.",
+        "excellent": "The save cannot call out synchronously, so it is asynchronous either way. I would queue a job rather than use the older annotation, mainly because it accepts typed input and can chain. The part worth designing up front is what happens when the far side is down: without an idempotency key and somewhere to record the failure, you either lose the event or send it twice, and the record ends up claiming something that never happened."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "as.volume-beyond-transaction",
+      "topicId": "sfdev.async_apex",
+      "text": "A nightly process has to touch far more records than a single transaction can handle. How do you approach it?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the work must be divided so each division runs in its own transaction with its own budget",
+          "probe": "Why can this not run as one piece of work?"
+        },
+        {
+          "id": "s2",
+          "signal": "names the mechanism intended for processing volume in divided transactions",
+          "probe": "Which mechanism is built for that?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes how the set of records to process is selected and how progress is tracked",
+          "probe": "How does it know what to work on?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that partial completion is now a real state, so failures must be recorded and the run made safe to repeat",
+          "probe": "One division fails halfway. Then what?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would schedule the job to run at night when nobody is using the system so it has more resources available to finish.",
+        "competent": "It needs to be divided into separate transactions, so the mechanism built for processing volume. It selects the records with a query, then processes them in divisions, each getting its own budget.",
+        "excellent": "Divide it so each division is its own transaction with its own budget, using the mechanism built for that. I would drive selection from a query and keep a marker on the record so a re-run does not redo finished work. The thing to design for is that partial success is now normal: a division can fail while others succeed, so failures need recording somewhere a human will see, and the whole run needs to be safe to start again."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "as.silent-async-failure",
+      "topicId": "sfdev.async_apex",
+      "text": "An asynchronous job quietly did nothing for some records and nobody noticed for a week. How would you have caught that sooner?",
+      "kind": "debug",
+      "scores": [
+        "relevance",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that an asynchronous failure has no user watching it, so nothing surfaces unless the code surfaces it",
+          "probe": "Why did nobody notice?"
+        },
+        {
+          "id": "s2",
+          "signal": "names where the outcome of asynchronous work can be inspected after the fact",
+          "probe": "Where would you go looking?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes recording per-record outcome rather than relying on the absence of an exception",
+          "probe": "What would you add to the code?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the useful alert is on expected work not completing, rather than on errors being thrown",
+          "probe": "What would you alert on?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would add a try catch around the logic and write the exception to the debug logs so it can be found later.",
+        "competent": "Nothing was watching it. I would check the job records to see the outcome and add error handling that writes failures somewhere persistent instead of just letting them disappear.",
+        "excellent": "Asynchronous work has no user staring at a spinner, so silence reads as success. I would look at the job history first, then add a per-record outcome so the code records what it did rather than only what threw. The alert that would actually have caught this is on expected work not finishing, since the failure here was records being skipped, and skipping throws nothing."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "as.older-mechanism-choice",
+      "topicId": "sfdev.async_apex",
+      "text": "Your team already uses the older fire and forget annotation everywhere. Would you keep using it on a new piece of work?",
+      "kind": "tradeoff",
+      "scores": [
+        "relevance",
+        "clarity",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "names a concrete difference between the older annotation and the newer mechanism rather than labelling one as outdated",
+          "probe": "What actually differs between them?"
+        },
+        {
+          "id": "s2",
+          "signal": "identifies the property of the new work that decides which one fits",
+          "probe": "What about this work decides it?"
+        },
+        {
+          "id": "s3",
+          "signal": "treats consistency with the existing codebase as a real factor rather than dismissing it",
+          "probe": "Does what the team already uses matter?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers the cost of either choice, whether that is inconsistency in the codebase or being unable to pass what is needed",
+          "probe": "What does your choice cost?"
+        }
+      ],
+      "answerKey": {
+        "weak": "No, that annotation is outdated and the newer mechanism is the recommended approach now, so I would use that instead.",
+        "competent": "It depends what the work needs. The older annotation only takes simple values and cannot queue follow-up work. If this job needs either of those, I would use the newer mechanism, otherwise the annotation is fine.",
+        "excellent": "The difference that matters is what you can pass in and whether you can queue follow-on work, not which is newer. If this job needs typed input or chaining, that decides it. If not, I would weigh matching the existing codebase, because a single file doing it differently is a maintenance cost somebody pays later. I would rather introduce the newer one deliberately across a boundary than sprinkle it."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "as.two-jobs-same-records",
+      "topicId": "sfdev.async_apex",
+      "text": "Two asynchronous jobs both update the same records and you are seeing inconsistent results. What do you look at?",
+      "kind": "debug",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the two have no guaranteed ordering relative to each other",
+          "probe": "What order do those two run in?"
+        },
+        {
+          "id": "s2",
+          "signal": "identifies that each reads a snapshot and can overwrite what the other wrote",
+          "probe": "How does one lose the other's change?"
+        },
+        {
+          "id": "s3",
+          "signal": "names a way to remove the race, such as sequencing the work or narrowing each job to the fields it owns",
+          "probe": "How would you make it deterministic?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that reproducing this is timing dependent, so it will not fail consistently in testing",
+          "probe": "How would you prove you fixed it?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would add a delay to one of the jobs so they do not run at the same time and overwrite each other's changes.",
+        "competent": "There is no ordering guarantee between them, so both read the record and the second write wins. I would chain them so one runs after the other, or split them so each only touches its own fields.",
+        "excellent": "No ordering guarantee, and each reads its own snapshot, so whichever commits last silently discards the other. I would either sequence them explicitly or narrow each to the fields it owns, which I prefer because it removes the race instead of hiding it behind timing. And I would say up front that this will not reproduce reliably, so a passing test proves very little here."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sq.query-degrades-with-growth",
+      "topicId": "sfdev.soql_relationships",
+      "text": "A query that has been fine for two years starts timing out as the object grows. Nothing about the query changed. What happened?",
+      "kind": "debug",
+      "scores": [
+        "correctness",
+        "depth",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the filter is no longer narrowing the result enough relative to the size of the object",
+          "probe": "What about growth would change the query's behaviour?"
+        },
+        {
+          "id": "s2",
+          "signal": "identifies what makes a filter able to narrow efficiently, such as the field being indexed or the value being rare",
+          "probe": "What makes a filter efficient?"
+        },
+        {
+          "id": "s3",
+          "signal": "names a concrete change, such as filtering on an indexed field, tightening the range, or adding an index",
+          "probe": "What would you change?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the query was always inefficient and only the data volume made it visible",
+          "probe": "Was this query ever correct?"
+        }
+      ],
+      "answerKey": {
+        "weak": "The table got bigger so the query takes longer. I would add a limit clause so it returns fewer records and finishes faster.",
+        "competent": "The filter is not selective enough for the current size. Probably filtering on something unindexed or on a value that matches most rows. I would filter on an indexed field or narrow the range.",
+        "excellent": "The filter stopped being selective relative to the object size, so the platform can no longer use an index and falls back to scanning. I would filter on an indexed field, or narrow the range so fewer rows qualify. Worth naming that the query was always inefficient, volume just made it visible, so the same mistake is probably elsewhere in the codebase waiting for its own growth curve."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sq.parent-and-children-together",
+      "topicId": "sfdev.soql_relationships",
+      "text": "You need fields from a record's parent and also its child records, in as few reads as possible. How do you write that?",
+      "kind": "code_reasoning",
+      "scores": [
+        "technical_accuracy",
+        "depth"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "names traversing upward to the parent by walking the relationship in the field list",
+          "probe": "How do you reach the parent?"
+        },
+        {
+          "id": "s2",
+          "signal": "names retrieving children through a nested query inside the field list",
+          "probe": "And the children?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that both can be done in the same single read rather than requiring separate queries",
+          "probe": "How many reads is that?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers a constraint on the nested form, such as bounded nesting depth or that filtering and ordering behave differently inside it",
+          "probe": "Any limitation on the nested part?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would query the record, then query the parent, then query the children, and combine the three results in Apex afterwards.",
+        "competent": "One query. Walk the relationship in the field list for parent fields, and put a nested query in the field list for the children. That gets everything in a single read.",
+        "excellent": "A single read does both: dot through the relationship for parent fields, and a nested query in the field list for children. The nested form is where people get surprised, since nesting is bounded and filtering inside it does not behave like a top-level filter, so I would not lean on it for anything deep."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sq.for-loop-vs-list",
+      "topicId": "sfdev.soql_relationships",
+      "text": "When would you iterate a query directly rather than assigning the results to a list first?",
+      "kind": "tradeoff",
+      "scores": [
+        "technical_accuracy",
+        "depth",
+        "problem_solving",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that assigning everything to a list holds all of it in memory at once",
+          "probe": "What is the cost of the list version?"
+        },
+        {
+          "id": "s2",
+          "signal": "identifies that iterating the query directly processes in portions and keeps memory bounded",
+          "probe": "What does iterating directly do differently?"
+        },
+        {
+          "id": "s3",
+          "signal": "names the situation that decides it, namely a result set large enough that memory becomes the constraint",
+          "probe": "When does it actually matter?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that this addresses memory only and does nothing for the number of reads or the time spent",
+          "probe": "Which limit does this help with?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would iterate the query directly because it is more efficient and uses fewer queries than assigning to a list first.",
+        "competent": "When the result set is big enough that holding it all in memory is a problem. Iterating the query directly works through it in portions so memory stays bounded.",
+        "excellent": "When the result is large enough that memory is the binding constraint rather than the query count. Iterating directly works in portions and keeps the footprint flat. What it does not do is reduce reads or processing time, so if the actual problem is the number of queries or time spent, this changes nothing and I would be looking somewhere else."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sq.three-object-fetch",
+      "topicId": "sfdev.soql_relationships",
+      "text": "A screen needs data spanning three related objects. Talk me through how you would fetch it.",
+      "kind": "scenario",
+      "scores": [
+        "depth",
+        "problem_solving",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "establishes the direction of the relationships before deciding on the query shape",
+          "probe": "What do you need to know before writing it?"
+        },
+        {
+          "id": "s2",
+          "signal": "states which parts can be combined into one read and which genuinely require a separate one",
+          "probe": "Can that be one query?"
+        },
+        {
+          "id": "s3",
+          "signal": "keeps the total number of reads bounded rather than proportional to the records involved",
+          "probe": "How many reads does your approach take?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that fetching only the fields the screen uses matters as much as the number of reads",
+          "probe": "Anything else you would be careful about?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would query each object separately and then loop through the results to match the records up in Apex.",
+        "competent": "First I would check which way the relationships run. Anything reachable upward goes in the field list, children go in a nested query. If a leg is not reachable from the root, that is a second query keyed by id.",
+        "excellent": "I would map the relationship directions first, because that decides the shape entirely. Whatever is reachable from the root goes into one read, upward through the field list and downward through a nested query, with any unreachable leg as one more keyed query. Two reads, not two per record. I would also only select the fields the screen renders, since a wide select is the other way this gets expensive."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sq.selective-meaning",
+      "topicId": "sfdev.soql_relationships",
+      "text": "What makes a query selective?",
+      "kind": "definition",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that it concerns the proportion of rows the filter eliminates rather than how the query is written",
+          "probe": "Selective with respect to what?"
+        },
+        {
+          "id": "s2",
+          "signal": "names the role of an index on the filtered field",
+          "probe": "What does the platform need in order to do that?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that the same query can be selective on a small object and not on a large one",
+          "probe": "Is it a fixed property of the query?"
+        }
+      ],
+      "answerKey": {
+        "weak": "A selective query is one that has a where clause and a limit so it does not return too many records at once.",
+        "competent": "The filter narrows to a small proportion of the rows, and it is on an indexed field so the platform can use the index instead of scanning. The same query can stop being selective as the object grows.",
+        "excellent": "It is about the fraction of rows the filter eliminates, not the syntax. The platform needs an index on the filtered field and a filter narrow enough to be worth using it. The important part is that it is not a fixed property of the query at all: the identical query can be selective on a small object and non-selective on a large one, so this is something that degrades with growth rather than something you get right once."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "ts.test-a-callout",
+      "topicId": "sfdev.testing",
+      "text": "How do you test logic that calls an external system?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the external call has to be substituted rather than actually made during a test",
+          "probe": "Tests cannot reach the outside world. So how does it run?"
+        },
+        {
+          "id": "s2",
+          "signal": "names how the substitute is supplied to the code under test",
+          "probe": "How does your code end up using the fake one?"
+        },
+        {
+          "id": "s3",
+          "signal": "describes asserting on the resulting state rather than on the test merely completing",
+          "probe": "What does the test actually assert?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers testing the unsuccessful response as well as the successful one",
+          "probe": "What else would you test besides the happy path?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would mark the class as a test class and make sure the coverage percentage is above the threshold the org requires.",
+        "competent": "Callouts cannot run in a test, so I supply a mock response and register it before the code runs. Then I assert that the record ended up in the state the response should produce.",
+        "excellent": "The call gets substituted with a mock registered before the code runs, so nothing leaves the org. Then I assert on the resulting record state, not just that it completed. The case worth writing is the unsuccessful response, because that is the path that runs in production at three in the morning and the one nobody has ever exercised."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "ts.coverage-without-assertions",
+      "topicId": "sfdev.testing",
+      "text": "A colleague hits the required coverage number with a test that asserts nothing. What is your position?",
+      "kind": "tradeoff",
+      "scores": [
+        "relevance",
+        "clarity",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "distinguishes lines having been executed from behaviour having been verified",
+          "probe": "What does coverage actually measure?"
+        },
+        {
+          "id": "s2",
+          "signal": "states that such a test still passes when the logic becomes wrong, so it protects nothing",
+          "probe": "What happens when someone breaks that code?"
+        },
+        {
+          "id": "s3",
+          "signal": "acknowledges the threshold as a real deployment constraint rather than dismissing it",
+          "probe": "But the deployment does need the number."
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the cost is paid later, when a change breaks behaviour and the suite stays green",
+          "probe": "Where does the cost show up?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It meets the requirement so the deployment will work, but I would ask them to add some assertions when they get time.",
+        "competent": "Coverage only says the lines ran. A test with no assertions passes even when the behaviour is wrong, so it gives no protection. The number is required for deployment, but it is not the point of the test.",
+        "excellent": "Coverage measures execution, not correctness, so that test will stay green through any behavioural regression. It is worse than no test, because it buys false confidence and satisfies the gate that was supposed to force the real one. The threshold is a genuine deployment constraint, so the answer is assertions on the behaviour that matters rather than deleting the test."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "ts.passes-locally-fails-deploy",
+      "topicId": "sfdev.testing",
+      "text": "A test passes in your development environment and fails during deployment. Where do you look?",
+      "kind": "debug",
+      "scores": [
+        "problem_solving",
+        "depth",
+        "correctness"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "identifies dependence on data or configuration that exists in one environment and not the other",
+          "probe": "What differs between the two places?"
+        },
+        {
+          "id": "s2",
+          "signal": "names the kinds of hidden dependency involved, such as existing records, required fields, validation rules, or automation present in only one org",
+          "probe": "What kind of dependency does that?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that the fix is the test creating everything it needs rather than the target being adjusted",
+          "probe": "How do you fix it for good?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that a test depending on ambient data is unreliable even where it currently passes",
+          "probe": "Is that test trustworthy where it passes?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would check the deployment error message and add the missing records to the target org so the test can find what it needs.",
+        "competent": "It is relying on something that exists in my environment and not the target. Usually existing records, or a required field or validation rule that differs. The test should create its own data instead of assuming any.",
+        "excellent": "Something ambient in my environment is absent in the target, whether that is records, a required field, a validation rule, or automation only one org has. The fix is the test building everything it depends on, not seeding the target. And I would not trust that test where it passes either, because it is passing for a reason unrelated to the behaviour it claims to check."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "ts.shared-setup-across-methods",
+      "topicId": "sfdev.testing",
+      "text": "Several test methods in one class all need the same set of records. How do you set that up?",
+      "kind": "code_reasoning",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "depth"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "names the mechanism for creating records once for every method in the class",
+          "probe": "Is there something built in for that?"
+        },
+        {
+          "id": "s2",
+          "signal": "states that each method receives the same starting state and that changes made in one do not persist into another",
+          "probe": "What does each method see?"
+        },
+        {
+          "id": "s3",
+          "signal": "identifies the benefit beyond tidiness, namely the setup cost being paid once rather than per method",
+          "probe": "Why bother, versus a helper method?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers a case where this is the wrong tool, such as a method needing a different starting state",
+          "probe": "When would you not use it?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would write a helper method that creates the records and call it at the beginning of each of the test methods.",
+        "competent": "There is a setup mechanism that runs once for the class. Each method gets the same records and its changes are rolled back afterwards, so the methods stay independent of each other.",
+        "excellent": "Use the class-level setup so the records are created once and every method starts from the same state with its own changes rolled back. The gain over a helper is that the creation cost is paid once rather than per method, which matters as the class grows. I would not use it where a method needs a genuinely different starting state, since bending the shared setup to serve every case is how it turns into a tangle."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "ts.isolation-meaning",
+      "topicId": "sfdev.testing",
+      "text": "What does it mean for a test to be isolated from the data already in the org?",
+      "kind": "definition",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that the test sees only records it created rather than records already present",
+          "probe": "Isolated from what, exactly?"
+        },
+        {
+          "id": "s2",
+          "signal": "states that this is the default behaviour and that it can be deliberately overridden",
+          "probe": "Is that automatic?"
+        },
+        {
+          "id": "s3",
+          "signal": "identifies why it matters, namely that a test depending on ambient data breaks when that data changes",
+          "probe": "Why is that worth having?"
+        }
+      ],
+      "answerKey": {
+        "weak": "It means the test creates its own records instead of using the ones already in the org so it does not interfere with them.",
+        "competent": "By default a test cannot see the org's existing records, only what it creates. There is a way to override that, but then the test depends on data somebody else can change.",
+        "excellent": "The test's view is limited to what it created, which is the default rather than something you opt into, and it can be deliberately overridden. It matters because a test reading ambient data is really asserting on somebody else's records, so it starts failing on a change that has nothing to do with the code, and by then nobody remembers why the test existed."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sc.component-returns-contacts",
+      "topicId": "sfdev.security_sharing",
+      "text": "Your component calls an Apex method that returns a list of contacts. What do you need to think about for security?",
+      "kind": "scenario",
+      "scores": [
+        "correctness",
+        "depth"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "treats whether sharing and field access are enforced as a property of how the class or operation is declared rather than as something to assume, including saying it depends on the version or the declaration",
+          "probe": "What does that class enforce, and how do you know?"
+        },
+        {
+          "id": "s2",
+          "signal": "separates who can see the record from who can see the fields on it",
+          "probe": "Are those the same question?"
+        },
+        {
+          "id": "s3",
+          "signal": "states that declaring sharing on the class does not by itself restrict which fields come back",
+          "probe": "Does the sharing declaration cover the fields too?"
+        },
+        {
+          "id": "s4",
+          "signal": "names a concrete mechanism that enforces field access, any legitimate one counting equally",
+          "probe": "So how do you actually enforce field access?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would add the sharing keyword to the class declaration so the running user's permissions are respected on the query.",
+        "competent": "Record access and field access are separate. The sharing declaration governs which records come back but not which fields, so I also need to enforce field access explicitly rather than assuming the query does it.",
+        "excellent": "First I would not assume what the class enforces, since that depends on how it is declared and has changed across versions. Then I would treat record access and field access as two questions, because the sharing declaration governs rows and says nothing about columns. For the fields I would enforce explicitly, and I would pick the mechanism based on whether I want the request to fail loudly or to silently drop what the user cannot see."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sc.user-sees-wrong-record",
+      "topicId": "sfdev.security_sharing",
+      "text": "A user reports seeing a record they should not have access to. Where do you start?",
+      "kind": "debug",
+      "scores": [
+        "problem_solving",
+        "depth",
+        "correctness"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "establishes whether the record was reached through code or through the standard interface before investigating",
+          "probe": "What is the first thing you would establish?"
+        },
+        {
+          "id": "s2",
+          "signal": "identifies custom code running without enforcing the running user's access as a likely path",
+          "probe": "How could code cause this?"
+        },
+        {
+          "id": "s3",
+          "signal": "names where the intended record access for that user can be inspected",
+          "probe": "How do you find out what they should be able to see?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the same gap probably exposes other records and users, so the fix is not limited to the reported case",
+          "probe": "Is this one record, or something larger?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would check the user's profile and permission sets to see whether they have been given access to that object by mistake.",
+        "competent": "First, whether they got there through the interface or through our code. If it is our code, likely a class returning records without enforcing the running user's access. I would compare against what their configured access should allow.",
+        "excellent": "I would establish the path first, because configuration and code are different investigations. If it is our code, the usual cause is a query running without the running user's access enforced. I would check their intended access to confirm what should have been visible. Then I would treat the report as a sample rather than the bug: if one query skips enforcement, that user is very unlikely to be the only one who noticed something, and the others just have not reported it."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sc.deliberately-not-enforcing",
+      "topicId": "sfdev.security_sharing",
+      "text": "When would you deliberately run something without enforcing the running user's record access?",
+      "kind": "tradeoff",
+      "scores": [
+        "relevance",
+        "clarity",
+        "problem_solving"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "names a legitimate case where the operation must act beyond what the user can see, such as maintaining a rollup or reading a reference table",
+          "probe": "Give me a case where it is the right call."
+        },
+        {
+          "id": "s2",
+          "signal": "states that the elevated scope should be confined to the narrow operation that needs it rather than applied to the whole path",
+          "probe": "How far does that elevation extend?"
+        },
+        {
+          "id": "s3",
+          "signal": "identifies that what is returned to the user must still be limited even when the internal read was not",
+          "probe": "What comes back to the user?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that this is the kind of decision that needs to be visible in review, since it is invisible at runtime",
+          "probe": "How does the next person know this was deliberate?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would avoid it entirely, since running without enforcing access is a security risk and there is usually another way to do it.",
+        "competent": "When the operation legitimately needs to see more than the user, like updating a total that depends on records they cannot read. I would keep that to the smallest possible piece and not return anything to the user they should not see.",
+        "excellent": "When the operation genuinely must act beyond the user's visibility, such as maintaining a total over records they cannot read. I would confine the elevation to that one call rather than the whole entry point, and still filter what goes back to the user, since the internal read being broad does not license a broad response. I would also make it obvious in the code why it is deliberate, because at runtime this looks identical to the mistake."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sc.return-only-visible-fields",
+      "topicId": "sfdev.security_sharing",
+      "text": "You need to return records but only the fields the running user is allowed to see. Talk me through how.",
+      "kind": "code_reasoning",
+      "scores": [
+        "technical_accuracy",
+        "depth",
+        "problem_solving",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "names at least one concrete mechanism for enforcing field access, any legitimate one counting equally",
+          "probe": "What mechanism would you reach for?"
+        },
+        {
+          "id": "s2",
+          "signal": "distinguishes an approach that raises an error on inaccessible fields from one that removes them from the result",
+          "probe": "Does it fail, or does it strip?"
+        },
+        {
+          "id": "s3",
+          "signal": "ties the choice to how the caller should behave when a field is not permitted",
+          "probe": "Which behaviour do you want here, and why?"
+        },
+        {
+          "id": "s4",
+          "signal": "volunteers that the component receiving the data must tolerate a field being absent rather than assuming it is there",
+          "probe": "What does the front end need to handle?"
+        }
+      ],
+      "answerKey": {
+        "weak": "I would check the field permissions for each field using the schema describe calls before adding them to the response object.",
+        "competent": "I would use one of the built-in enforcement approaches rather than hand-rolling describe checks. One raises an error if the user cannot see a field, the other strips those fields from the result, so I would pick based on which behaviour I want.",
+        "excellent": "One of the built-in mechanisms rather than hand-rolled describe checks, and the real decision is failure mode: erroring on an inaccessible field versus quietly removing it. For a read feeding a screen I would strip, so a user with narrower access gets a smaller screen instead of an error. That pushes a requirement onto the front end, which now has to render with a field absent rather than assuming every field arrived."
+      }
+    },
+    {
+      "maxProbes": 3,
+      "hardTimeS": 240,
+      "difficultyBand": "intermediate",
+      "id": "sc.record-vs-field-access",
+      "topicId": "sfdev.security_sharing",
+      "text": "What is the difference between record access and field access?",
+      "kind": "definition",
+      "scores": [
+        "technical_accuracy",
+        "clarity",
+        "relevance"
+      ],
+      "mustHear": [
+        {
+          "id": "s1",
+          "signal": "states that one governs which rows a user can reach and the other which columns on a reachable row",
+          "probe": "What does each one control?"
+        },
+        {
+          "id": "s2",
+          "signal": "states that they are configured and enforced through separate mechanisms",
+          "probe": "Are they enforced by the same thing?"
+        },
+        {
+          "id": "s3",
+          "signal": "identifies that a user can reach a record while being unable to see some of its fields",
+          "probe": "Can you have one without the other?"
+        }
+      ],
+      "answerKey": {
+        "weak": "Record access is whether you can open the record and field access is whether you can edit the fields on it once open.",
+        "competent": "Record access decides which rows you can reach, field access decides which columns on those rows. They are configured separately and enforced separately, so having one does not imply the other.",
+        "excellent": "Rows versus columns. Record access decides which rows a user can reach at all; field access decides which columns they see on a row they can already reach. They are configured and enforced through different mechanisms, which is exactly why code that handles one often silently ignores the other, and the usual production bug is a query that respected the rows and returned every column."
+      }
+    }
+  ],
+  "source": "hand-authored",
+  "authoredAt": "2026-09-09"
+}

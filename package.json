@@ -1,0 +1,21 @@
+{
+  "name": "ai-interviewer",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --parallel typecheck",
+    "build": "pnpm -r build",
+    "dev:web": "pnpm --filter @ai/web dev",
+    "dev:agent": "pnpm --filter @ai/voice-agent dev",
+    "db:push": "supabase db push",
+    "db:seed": "supabase db push --include-seed",
+    "db:types": "supabase gen types typescript --linked > packages/core/src/db/types.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^22.10.2"
+  }
+}
