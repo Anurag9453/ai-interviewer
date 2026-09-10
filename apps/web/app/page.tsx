@@ -9,9 +9,29 @@ import { buttonClass, Card, Eyebrow } from "@/components/ui";
  * follows up, and you get scored. Signed-in visitors never see it.
  */
 export default async function Home() {
-  const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  if (claims?.claims?.sub) redirect("/dashboard");
+  // The signed-in redirect is a convenience, not a requirement for this page
+  // to be useful — so it must never be able to break the one page a first-time
+  // visitor sees. A deployment with Supabase env vars missing previously threw
+  // here (createClient asserts both with `!`) and served a 500 "Application
+  // error" on the marketing homepage, while protected routes correctly showed
+  // a 503. The landing page now degrades to simply not redirecting.
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+    try {
+      const supabase = await createClient();
+      const { data: claims } = await supabase.auth.getClaims();
+      if (claims?.claims?.sub) redirect("/dashboard");
+    } catch (err) {
+      // `redirect()` throws a NEXT_REDIRECT control-flow error by design —
+      // it must be rethrown, not swallowed, or the redirect silently stops
+      // working for signed-in users.
+      if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
+      if (typeof err === "object" && err !== null && "digest" in err
+          && typeof err.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+        throw err;
+      }
+      console.error("landing page auth check failed; rendering the public page", err);
+    }
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14 sm:px-6 sm:pt-20">
