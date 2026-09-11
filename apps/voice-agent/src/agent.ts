@@ -253,8 +253,26 @@ export default defineAgent<ProcessUserData>({
         },
         onEvaluated: (info) => {
           turnTimer.markClaudeDone({ hadProbe: false }); // hadProbe logged separately via claude_eval
-          usage.llmCostCents += info.costCents;
-          logTurnEvent({ interviewId, event: "claude_usage", ...info });
+          // info.usage is this turn's OWN delta, never a running total — see
+          // the note at AdaptiveBrain's call site for the triangular-sum bug
+          // this replaced. Accumulating deltas is the only correct operation.
+          usage.llmProvider = info.provider;
+          usage.llmModel = info.model;
+          usage.llmCostCents += info.usage.costCents;
+          usage.llmInputTokens += info.usage.inputTokens;
+          usage.llmOutputTokens += info.usage.outputTokens;
+          usage.llmCachedInputTokens += info.usage.cachedInputTokens;
+          usage.llmTurns += 1;
+          logTurnEvent({
+            interviewId, event: "claude_usage",
+            provider: info.provider, model: info.model, durationMs: info.durationMs,
+            inputTokens: info.usage.inputTokens,
+            cachedInputTokens: info.usage.cachedInputTokens,
+            outputTokens: info.usage.outputTokens,
+            // Estimated from a local price table, NOT provider-billed spend.
+            estCostCents: info.usage.costCents,
+            cumulativeEstCostCents: usage.llmCostCents,
+          });
         },
       });
 

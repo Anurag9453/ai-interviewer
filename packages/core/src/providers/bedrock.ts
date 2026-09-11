@@ -64,7 +64,12 @@ export class BedrockProvider implements LlmProvider {
       // factory's `Anthropic`-shaped client parameter structurally.
       client: client as unknown as Anthropic,
       AnthropicCtor: Anthropic,
-      pricing: PRICING,
+      // Bedrock still runs the same model for both roles, so both tables are
+      // the same placeholder. It is NOT production-ready regardless: see the
+      // PLACEHOLDER note above — shipping AI_PROVIDER=bedrock would make every
+      // cost figure wrong.
+      livePricing: PRICING,
+      batchPricing: PRICING,
     });
   }
 

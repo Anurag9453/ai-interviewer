@@ -207,19 +207,25 @@ export interface CompatibleProviderConfig {
   batchModel: string;
   client: Anthropic;
   AnthropicCtor: typeof Anthropic;
-  pricing: Pricing;
+  /**
+   * Separate tables because live and batch are different models at different
+   * rates. Pricing the per-turn evaluator with the batch model's table would
+   * misreport cost even once the accounting is otherwise correct.
+   */
+  livePricing: Pricing;
+  batchPricing: Pricing;
 }
 
 /** Builds an LlmProvider from any Messages-API-compatible client + pricing. */
 export function createCompatibleProvider(config: CompatibleProviderConfig): LlmProvider {
-  const { id, liveModel, batchModel, client, AnthropicCtor, pricing } = config;
+  const { id, liveModel, batchModel, client, AnthropicCtor, livePricing, batchPricing } = config;
   return {
     id,
     liveModel,
     batchModel,
 
     openLiveSession(init: LiveSessionInit): LiveSession {
-      return new CompatibleLiveSession(client, AnthropicCtor, liveModel, pricing, init);
+      return new CompatibleLiveSession(client, AnthropicCtor, liveModel, livePricing, init);
     },
 
     async generateStructured<T>(
@@ -241,7 +247,7 @@ export function createCompatibleProvider(config: CompatibleProviderConfig): LlmP
         if (res.parsed_output == null) {
           throw new ProviderError("structured output failed to parse", true);
         }
-        return { value: res.parsed_output as T, usage: priceUsage(pricing, res.usage) };
+        return { value: res.parsed_output as T, usage: priceUsage(batchPricing, res.usage) };
       } catch (err) {
         if (err instanceof ProviderError) throw err;
         throw classify(AnthropicCtor, err);

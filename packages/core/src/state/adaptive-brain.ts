@@ -32,7 +32,8 @@ import type { Difficulty } from "../schema/plan.js";
 import type { Question } from "../schema/plan.js";
 import type { InterviewPlan } from "../schema/plan.js";
 import type { TopicSpec } from "../prompts/plan-generator.js";
-import type { LlmProvider, LiveSession, ToolSpec } from "../providers/types.js";
+import type { LlmProvider, LiveSession, ToolSpec, Usage } from "../providers/types.js";
+import { ZERO_USAGE } from "../providers/types.js";
 import type {
   BrainQuestion, EvaluationContext, EvaluationOutcome,
   InterviewBrain, SelectionContext,
@@ -112,7 +113,12 @@ export interface AdaptiveBrainOptions {
   startingDifficulty?: Difficulty;
   /** Called on any live-session failure. Never silent — see ClaudeEvaluationBrain's rationale. */
   onDegraded?: (reason: string, error: unknown) => void;
-  onEvaluated?: (info: { durationMs: number; costCents: number }) => void;
+  /**
+   * Fires once per evaluated turn with that turn's OWN usage — never a running
+   * total. Callers accumulate these deltas, so handing back a cumulative figure
+   * silently produces a triangular sum (see the note at the call site).
+   */
+  onEvaluated?: (info: { durationMs: number; usage: Usage; model: string; provider: string }) => void;
 }
 
 /** Overhead per question beyond its own hardTimeS — ask + transition time. */
@@ -206,9 +212,19 @@ export class AdaptiveBrain implements InterviewBrain {
       const stateBlock = this.buildStateBlock(state, unresolvedBefore, ctx, isRepeatProbe);
 
       const toolCalls: Array<{ id: string; name: string; input: unknown }> = [];
+      // Per-turn delta, taken straight off the `done` event.
+      //
+      // NOT session.totalUsage(): one session is reused for the whole interview
+      // (see the prompt-caching note in this file's header), so totalUsage() is
+      // the running total. Reporting that to a caller which ADDS it every turn
+      // produced a triangular sum — Σ(n-i+1)·cᵢ instead of Σcᵢ, roughly a 5×
+      // over-count at nine turns. Observed in production on 2026-09-11 as a
+      // 3739-cent figure for a single 8-minute interview.
+      let turnUsage: Usage = ZERO_USAGE;
       for await (const ev of session.turn({ candidateUtterance: ctx.candidateText, stateBlock })) {
         if (ev.type === "text") modelText += ev.delta;
         else if (ev.type === "tool_call") toolCalls.push(ev);
+        else if (ev.type === "done") turnUsage = ev.usage;
         else if (ev.type === "error") {
           degraded = true;
           this.opts.onDegraded?.("live turn failed", ev.error);
@@ -231,7 +247,9 @@ export class AdaptiveBrain implements InterviewBrain {
         }
         this.opts.onEvaluated?.({
           durationMs: Date.now() - started,
-          costCents: session.totalUsage().costCents,
+          usage: turnUsage,
+          model: this.opts.provider.liveModel,
+          provider: this.opts.provider.id,
         });
       }
     } catch (err) {
