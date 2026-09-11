@@ -9,18 +9,7 @@
         "ssm:GetParameters",
         "ssm:GetParametersByPath"
       ],
-      "Resource": "arn:aws:ssm:ap-southeast-1:ACCOUNT_ID:parameter/ai-interviewer/voice/*"
-    },
-    {
-      "Sid": "DecryptSecureStringParametersOnly",
-      "Effect": "Allow",
-      "Action": "kms:Decrypt",
-      "Resource": "arn:aws:kms:ap-southeast-1:ACCOUNT_ID:key/KMS_KEY_ID",
-      "Condition": {
-        "StringEquals": {
-          "kms:ViaService": "ssm.ap-southeast-1.amazonaws.com"
-        }
-      }
+      "Resource": "arn:aws:ssm:ap-southeast-1:506734151055:parameter/ai-interviewer/voice/*"
     },
     {
       "Sid": "WriteWorkerLogsOnly",
@@ -30,7 +19,7 @@
         "logs:PutLogEvents",
         "logs:DescribeLogStreams"
       ],
-      "Resource": "arn:aws:logs:ap-southeast-1:ACCOUNT_ID:log-group:/ai-interviewer/voice-agent:*"
+      "Resource": "arn:aws:logs:ap-southeast-1:506734151055:log-group:/ai-interviewer/voice-agent:*"
     }
   ]
 }
