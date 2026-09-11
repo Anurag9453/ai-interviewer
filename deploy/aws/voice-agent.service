@@ -1,0 +1,55 @@
+[Unit]
+Description=AI Interviewer voice-agent worker (LiveKit)
+Documentation=https://github.com/Anurag9453/ai-interviewer
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Secrets are fetched fresh on every start into a root-only tmpfs file, so a
+# rotated SSM parameter takes effect on the next restart with no image rebuild.
+ExecStartPre=/usr/local/bin/fetch-secrets.sh
+# Remove a stale container left by an unclean shutdown (ignore failure).
+ExecStartPre=-/usr/bin/docker rm -f voice-agent
+
+# --init runs tini as PID 1: reaps zombies and forwards signals to the CMD.
+# PORT and AI_PROVIDER are non-secret, so passing them with -e (visible in
+# `ps`) is fine; every secret comes from the env file instead.
+# awslogs sends stdout/stderr straight to CloudWatch, so logs survive both
+# container restarts and instance reboots. A FIXED stream name means restarts
+# append to one continuous stream rather than fragmenting the history.
+ExecStart=/usr/bin/docker run \
+  --rm \
+  --name voice-agent \
+  --init \
+  --env-file /run/voice-agent.env \
+  -e PORT=8080 \
+  -e AI_PROVIDER=anthropic \
+  --log-driver=awslogs \
+  --log-opt awslogs-region=ap-southeast-1 \
+  --log-opt awslogs-group=/ai-interviewer/voice-agent \
+  --log-opt awslogs-stream=worker \
+  voice-agent:current
+
+# Graceful stop. LiveKit's cli.runApp stops accepting new jobs on SIGTERM and
+# drains in-flight ones; an interview can run up to 15 minutes, so the window
+# is sized to outlast a full session (960s = 16 min).
+#
+# THIS IS THE EC2 ADVANTAGE: Render caps the grace period at 300s and Fargate's
+# stopTimeout at ~120s, so neither can fully drain an interview. Here we can.
+ExecStop=/usr/bin/docker stop --time=960 voice-agent
+TimeoutStopSec=1000
+
+# Crash recovery. RestartSec avoids a hot loop if the worker dies at boot
+# (e.g. a bad credential): 10s between attempts, and StartLimit* means
+# systemd gives up after 5 failures in 10 minutes rather than thrashing
+# forever — check `systemctl status` if it enters failed state.
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target

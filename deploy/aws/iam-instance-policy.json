@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyVoiceAgentParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": "arn:aws:ssm:ap-southeast-1:ACCOUNT_ID:parameter/ai-interviewer/voice/*"
+    },
+    {
+      "Sid": "DecryptSecureStringParametersOnly",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "arn:aws:kms:ap-southeast-1:ACCOUNT_ID:key/KMS_KEY_ID",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.ap-southeast-1.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "WriteWorkerLogsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": "arn:aws:logs:ap-southeast-1:ACCOUNT_ID:log-group:/ai-interviewer/voice-agent:*"
+    }
+  ]
+}
