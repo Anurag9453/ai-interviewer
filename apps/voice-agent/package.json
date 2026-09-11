@@ -19,11 +19,11 @@
     "@livekit/agents-plugin-silero": "^1.8.0",
     "@livekit/rtc-node": "0.13.34",
     "postgres": "^3.4.5",
+    "tsx": "^4.19.2",
     "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
-    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

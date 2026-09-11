@@ -1,0 +1,90 @@
+# Render Blueprint — voice-agent worker.
+#
+# Deliberately a BACKGROUND WORKER, not a web service. The worker only makes
+# OUTBOUND connections (LiveKit websocket, Deepgram, Cartesia, Anthropic,
+# Postgres); nothing needs to reach it. A worker therefore gets no public URL
+# and no inbound routing, which is the correct security posture rather than a
+# limitation.
+#
+# Consequence worth knowing: Render background workers do NOT support health
+# checks — that is a web-service feature. The container's own /health endpoint
+# still runs on PORT and is useful for local `docker run` checks and for
+# reading activeSessions, but Render will never probe it. Liveness on Render
+# is therefore judged by the process staying up and by the worker's log output
+# (LiveKit registration), not by an HTTP probe.
+#
+# Autoscaling and scale-to-zero are intentionally NOT configured. A voice
+# session is a long-lived stateful connection; scaling an instance away
+# mid-interview would drop a candidate's session. Leaving `scaling` unset
+# keeps this at a single fixed instance. Do not add it without verifying
+# LiveKit worker behaviour under instance churn.
+#
+# Fly's fly.toml is retained untouched for reference; nothing here is
+# Render-specific inside the application code itself.
+
+services:
+  - name: ai-interviewer-voice
+    type: worker
+    runtime: docker
+
+    # Build from the repo root: this is a pnpm workspace and the lockfile
+    # lives there, so the Dockerfile needs the root as its context.
+    dockerfilePath: ./apps/voice-agent/Dockerfile
+    dockerContext: .
+    # No dockerCommand: the image's CMD (`start:worker`) is the real voice
+    # pipeline. Overriding it here would risk silently running the
+    # health-only boot process instead.
+
+    # Nearest region to the primary user base (India). Matches the intent of
+    # the previous Fly `primary_region = "sin"`.
+    region: singapore
+
+    # 1 CPU / 2GB — mirrors the previously intended Fly sizing
+    # (shared-cpu-2x, 2gb). Node plus onnxruntime-node's native VAD inference
+    # is the memory floor here; if the worker is OOM-killed under concurrent
+    # interviews, step up to 2c-4g rather than reducing concurrency.
+    plan: 1c-2g
+
+    # Manual deploys only for the first rollout, so a push can't trigger an
+    # unattended production deploy mid-verification.
+    autoDeployTrigger: off
+
+    # Longest drain Render allows (default is 30s, hard ceiling is 300s).
+    # On SIGTERM, LiveKit's `cli.runApp` stops accepting new jobs and drains
+    # in-flight ones; this buys that drain the maximum available window.
+    #
+    # Known platform limitation, NOT solved by this setting: an interview is
+    # up to 15 minutes long, so a session with more than ~5 minutes remaining
+    # will still be SIGKILLed mid-interview by a deploy or restart. There is
+    # no Render setting that fixes this. Mitigation is operational — deploy
+    # when no interview is live — until interrupted-interview recovery (a
+    # documented backlog item) exists.
+    maxShutdownDelaySeconds: 300
+
+    envVars:
+      # Non-secret configuration, safe to commit.
+      - key: PORT
+        value: 8080
+      # Anthropic only. AI_PROVIDER=bedrock must NOT be used: bedrock.ts's
+      # pricing table is a labelled placeholder, so every cost figure in the
+      # admin dashboard and usage_events would be silently wrong.
+      - key: AI_PROVIDER
+        value: anthropic
+
+      # Secrets — `sync: false` means Render prompts for the value and it is
+      # never stored in this file or in git. env.ts validates all of these at
+      # boot and refuses to start if any is missing, by design.
+      - key: DATABASE_URL
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: CARTESIA_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

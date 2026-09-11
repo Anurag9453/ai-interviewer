@@ -123,3 +123,89 @@ the two most recent: `20260910140000_m10_resume_documents.sql` and
 5. A fresh purchase is required: Razorpay only retains/redelivers events fired
    while an endpoint was registered, so the earlier test payment cannot be
    replayed.
+
+---
+
+# Render Background Worker (voice agent)
+
+Replaces the Fly plan. `fly.toml` is retained, untouched, for reference; no
+application code is Render-specific.
+
+Blueprint: `render.yaml` at the repo root — `type: worker`, `runtime: docker`,
+region `singapore`, plan `1c-2g`, `autoDeployTrigger: off`.
+
+## Why a background worker, not a web service
+
+The worker makes only **outbound** connections (LiveKit websocket, Deepgram,
+Cartesia, Anthropic, Postgres). Nothing needs to reach it, so it gets no
+public URL — the correct posture, not a limitation.
+
+**Render background workers do not support health checks** (a web-service
+feature). The container's `/health` still runs on `PORT` and is useful for
+`docker run` checks and for reading `activeSessions`, but Render never probes
+it. On Render, liveness is judged by the process staying up and by the
+worker's log output showing LiveKit registration.
+
+## Runtime requirements
+
+**The Silero VAD model is bundled, not downloaded.** `silero_vad.onnx` ships
+inside `@livekit/agents-plugin-silero/dist/`, so `silero.VAD.load()` in
+prewarm needs neither network egress nor a writable model cache. (An earlier
+audit note claiming a runtime download was wrong — corrected here.)
+
+**Native binaries are per-architecture.** `onnxruntime-node` and
+`@livekit/local-inference` both ship platform-specific artifacts. The lockfile
+contains all five `local-inference` variants including
+`linux-x64-gnu`, so a Linux/amd64 install resolves correctly.
+
+Two constraints follow:
+- **Do not switch the base image to Alpine.** The Linux variant is `-gnu`
+  (glibc); no musl build is published, so Alpine would install no inference
+  binary and the VAD would fail at prewarm.
+- **Do not install with `--ignore-scripts`.** `onnxruntime-node` and
+  `@livekit/local-inference` are allow-listed in `pnpm-workspace.yaml`'s
+  `allowBuilds` and need their install scripts to run.
+
+**TypeScript runs at runtime by design.** `@ai/core`'s package exports point
+at `./src/index.ts`, so it is consumed as TypeScript source by both the worker
+and the Next app. Compiling the worker alone would emit imports of a `.ts`
+file Node cannot load; compiling properly would mean building `core` to
+`dist`, rewriting its exports, and adding a build step to the Vercel web
+build. `tsx` is therefore a genuine runtime dependency and lives in
+`dependencies`, so a production install cannot omit it.
+
+## Graceful shutdown — known platform limitation
+
+Render sends `SIGTERM`, then `SIGKILL` after a grace period: **30s by
+default, 300s maximum**. `render.yaml` sets `maxShutdownDelaySeconds: 300`,
+the ceiling.
+
+`worker.ts` delegates drain to LiveKit's `cli.runApp`, which stops accepting
+new jobs and drains in-flight ones. But an interview runs up to 15 minutes, so
+**a session with more than ~5 minutes remaining is still killed mid-interview
+by a deploy or restart.** No Render setting fixes this. Until
+interrupted-interview recovery exists (documented backlog item), the
+mitigation is operational: deploy when no interview is live.
+
+## Manual steps (Render dashboard)
+
+1. Create a Blueprint from the repo and point it at `render.yaml`.
+2. Supply the 7 secret values when prompted (`sync: false` means they are
+   never committed): `DATABASE_URL`, `LIVEKIT_URL`, `LIVEKIT_API_KEY`,
+   `LIVEKIT_API_SECRET`, `DEEPGRAM_API_KEY`, `CARTESIA_API_KEY`,
+   `ANTHROPIC_API_KEY`. `PORT=8080` and `AI_PROVIDER=anthropic` are committed
+   as non-secret values.
+3. Confirm the plan is `1c-2g`; step up to `2c-4g` if the worker is
+   OOM-killed under concurrent interviews.
+4. Leave autoscaling and scale-to-zero **off**. A voice session is a
+   long-lived stateful connection; scaling an instance away mid-interview
+   drops a candidate's session.
+5. Trigger the first deploy manually.
+
+## Acceptance (nothing below is verified yet)
+
+Deployment is not "successful" until: the service exists, the container
+starts, LiveKit worker registration appears in the logs, the worker stays up
+for a sustained period with no restart loop, no missing-env boot failure
+occurs, and a manual restart drains cleanly. `/health` is not part of Render
+acceptance because workers are not probed.
