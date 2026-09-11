@@ -17,6 +17,24 @@
 # native inference binary and the VAD would fail at prewarm.
 FROM node:22-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH
+
+# Debian slim ships without a CA trust store, and @livekit/rtc-node is a
+# NATIVE Rust WebRTC component that reads the operating system's store rather
+# than Node's bundled one. Without this, the worker registers with LiveKit
+# and accepts jobs perfectly well (that path is Node TLS), then dies the
+# moment it tries to join the room:
+#
+#   ConnectError: engine: signal failure: transport connection error:
+#   IO error: no native root CA certificates found (errors: [])
+#
+# Observed in production on 2026-09-11: two interviews consumed a credit each,
+# both stuck at status=configuring, surfacing to the candidate as "The
+# interviewer didn't join". Neither `docker build` nor /health can catch this —
+# it only appears on a real room connection.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable
 
 WORKDIR /app
