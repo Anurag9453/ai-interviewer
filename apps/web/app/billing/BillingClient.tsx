@@ -91,7 +91,7 @@ export function BillingClient({ products }: { products: Product[] }) {
   return (
     <div className="space-y-8">
       {activeSubscription && (
-        <section className="rounded-xl border border-black/8 px-5 py-4">
+        <section className="rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-raised)] px-5 py-4 shadow-[var(--shadow-card)]">
           <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-muted)]">Subscription</p>
           <p className="mt-1 text-sm">
             {activeSubscription.product_id} — {activeSubscription.cancel_at_period_end ? "cancels" : "renews"} on{" "}
@@ -105,13 +105,13 @@ export function BillingClient({ products }: { products: Product[] }) {
         <div className="mb-3">
           <input
             value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Promo code (optional)"
-            className="w-full rounded-lg border border-black/12 px-3.5 py-2 text-sm"
+            className="w-full rounded-full border border-[var(--color-line-strong)] bg-[var(--color-raised)] px-4 py-2.5 text-sm"
           />
         </div>
         {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
         <ul className="space-y-2.5">
           {products.map((p) => (
-            <li key={p.id} className="flex items-center justify-between rounded-xl border border-black/8 px-5 py-4">
+            <li key={p.id} className="flex items-center justify-between rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-raised)] px-5 py-4 shadow-[var(--shadow-card)]">
               <div>
                 <p className="text-sm font-medium">{p.name}</p>
                 <p className="text-xs text-[var(--color-muted)]">{p.description}</p>
@@ -119,7 +119,7 @@ export function BillingClient({ products }: { products: Product[] }) {
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium tabular-nums">{rupees(p.price_cents)}{p.billing_interval ? `/${p.billing_interval}` : ""}</span>
                 <button onClick={() => void purchase(p)} disabled={busyProductId === p.id}
-                  className="rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-sm font-medium text-white disabled:opacity-50">
+                  className="rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                   {busyProductId === p.id ? "…" : "Buy"}
                 </button>
               </div>
@@ -133,11 +133,11 @@ export function BillingClient({ products }: { products: Product[] }) {
         {!history ? (
           <p className="text-sm text-[var(--color-muted)]">Loading…</p>
         ) : history.transactions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-black/12 px-5 py-8 text-center text-sm text-[var(--color-muted)]">
+          <p className="rounded-[var(--radius-card)] border border-dashed border-[var(--color-line-strong)] px-5 py-8 text-center text-sm text-[var(--color-muted)]">
             No purchases yet.
           </p>
         ) : (
-          <ul className="divide-y divide-black/8 rounded-xl border border-black/8">
+          <ul className="divide-y divide-[var(--color-line)] rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-raised)]">
             {history.transactions.map((t) => (
               <li key={t.id} className="flex items-center justify-between px-5 py-3.5">
                 <div>

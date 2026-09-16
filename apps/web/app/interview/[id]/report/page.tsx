@@ -184,7 +184,7 @@ function ScoreSummary({ report }: { report: ComputedReport }) {
         <h2 id="score" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-muted)]">
           Overall score
         </h2>
-        <p className="mt-1.5 text-5xl font-semibold tabular-nums" style={{ color }}>
+        <p className="font-display mt-1.5 text-6xl tabular-nums" style={{ color }}>
           {overall}
           <span className="text-lg font-normal text-[var(--color-muted)]"> / 100</span>
         </p>
@@ -221,7 +221,7 @@ function Shell({ children, descriptor }: { children: React.ReactNode; descriptor
         <div className="mb-6 animate-rise">
           <Eyebrow>Interview report</Eyebrow>
           <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-semibold sm:text-3xl">{descriptor.title}</h1>
+            <h1 className="font-display text-3xl sm:text-4xl">{descriptor.title}</h1>
             {descriptor.kind !== "standard" && (
               <span className="rounded-full bg-[var(--color-accent-wash)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent-ink)]">
                 {descriptor.kind === "resume" ? "Resume interview" : "Your material"}

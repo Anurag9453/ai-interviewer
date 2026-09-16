@@ -84,12 +84,13 @@ export function MicPreflight({ onReady }: { onReady: (stream: MediaStream) => vo
   const lit = Math.round(level * bars);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-7 px-6">
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-muted)]">
+    <div data-theme="studio" className="flex min-h-screen flex-col justify-center px-6">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-7">
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-ink)]">
           Before we begin
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">Microphone check</h1>
+        <h1 className="font-display text-4xl leading-tight">Microphone check</h1>
       </div>
 
       <div className="flex h-12 items-end gap-[3px]" role="meter"
@@ -108,23 +109,24 @@ export function MicPreflight({ onReady }: { onReady: (stream: MediaStream) => vo
 
       <p aria-live="polite"
          className={status === "denied" || status === "no_device" || status === "error"
-           ? "text-sm text-red-600" : "text-sm text-[var(--color-muted)]"}>
+           ? "text-sm text-[var(--color-critical)]" : "text-sm text-[var(--color-muted)]"}>
         {MESSAGE[status]}
       </p>
 
       <div className="flex gap-2.5">
         {status === "idle" || status === "denied" || status === "no_device" || status === "error" ? (
           <button onClick={() => void request()}
-            className="rounded-lg bg-[var(--color-ink)] px-4 py-2.5 text-sm font-medium text-white">
+            className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-surface)]">
             {status === "idle" ? "Allow microphone" : "Try again"}
           </button>
         ) : null}
         <button
           disabled={status !== "ready"}
           onClick={() => { if (streamRef.current) onReady(streamRef.current); }}
-          className="rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
+          className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--color-surface)] disabled:opacity-40">
           Start interview
         </button>
+      </div>
       </div>
     </div>
   );

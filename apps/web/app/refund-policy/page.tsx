@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Card, Eyebrow } from "@/components/ui";
 import { PublicFooter } from "@/components/PublicFooter";
+import { PublicHeader } from "@/components/PublicHeader";
 
 export const metadata: Metadata = {
   title: "Refund policy · AI Interviewer",
@@ -44,10 +45,11 @@ const PENDING_DECISIONS = [
 export default function RefundPolicyPage() {
   return (
     <>
-      <main className="mx-auto max-w-3xl px-5 pt-14 sm:px-6 sm:pt-20">
+      <PublicHeader />
+      <main className="mx-auto max-w-3xl px-5 pt-12 sm:px-6 sm:pt-16">
         <header className="animate-rise">
           <Eyebrow>Refund policy</Eyebrow>
-          <h1 className="mt-3 text-[32px] font-semibold leading-[1.15] sm:text-4xl">Refund policy</h1>
+          <h1 className="font-display mt-3 text-[36px] leading-[1.12] sm:text-5xl">Refund policy</h1>
           <p className="mt-4 text-[15px] leading-relaxed text-[var(--color-muted)]">
             How refunds work for interview credits, subscriptions, top-ups, promotions and the free
             trial. Written to describe what the product actually does — where something

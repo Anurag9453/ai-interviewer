@@ -81,7 +81,7 @@ export default async function DashboardPage() {
       <main className="mx-auto max-w-5xl px-4 pb-16 pt-7 sm:px-6 sm:pt-10">
         <div className="animate-rise">
           <Eyebrow>{isNewUser ? "Welcome" : "Welcome back"}</Eyebrow>
-          <h1 className="mt-1.5 text-2xl font-semibold sm:text-3xl">
+          <h1 className="font-display mt-2 text-[32px] leading-tight sm:text-[40px]">
             {profile?.display_name ? profile.display_name : "Ready to practise?"}
           </h1>
           <p className="mt-1.5 text-sm text-[var(--color-muted)]">
@@ -95,10 +95,10 @@ export default async function DashboardPage() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Link
             href="/interview/new"
-            className="group flex flex-col justify-between rounded-[var(--radius-card)] bg-[var(--color-ink)] p-5 text-white transition hover:shadow-[var(--shadow-lift)] sm:p-6"
+            className="group flex flex-col justify-between rounded-[var(--radius-card)] bg-[var(--color-ink)] p-5 text-white transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] sm:p-6"
           >
             <div>
-              <p className="text-lg font-semibold sm:text-xl">Start new interview</p>
+              <p className="font-display text-2xl leading-tight">Start new interview</p>
               <p className="mt-1.5 text-sm leading-relaxed text-white/70">
                 Choose a field and difficulty, then talk it through with the interviewer.
               </p>
@@ -110,11 +110,11 @@ export default async function DashboardPage() {
 
           <Link
             href="/interview/new/resume"
-            className="group flex flex-col justify-between rounded-[var(--radius-card)] border border-[var(--color-accent)]/30 bg-[var(--color-accent-wash)] p-5 transition hover:shadow-[var(--shadow-lift)] sm:p-6"
+            className="group flex flex-col justify-between rounded-[var(--radius-card)] border border-[var(--color-accent)]/25 bg-[var(--color-accent-wash)] p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] sm:p-6"
           >
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-lg font-semibold sm:text-xl">Interview me on my resume</p>
+                <p className="font-display text-2xl leading-tight">Interview me on my resume</p>
               </div>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-ink-soft)]">
                 Upload your resume and get asked about your own roles, projects and claims.

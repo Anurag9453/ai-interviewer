@@ -154,7 +154,7 @@ export function CustomInterviewFlow({ hasCredits, remaining }: { hasCredits: boo
         <p className="text-sm text-[var(--color-ink-soft)]">You&rsquo;re out of interview credits.</p>
         <a
           href="/billing"
-          className="mt-2.5 inline-flex rounded-[var(--radius-control)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white"
+          className="mt-2.5 inline-flex rounded-full bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
         >
           Get more credits
         </a>
@@ -165,7 +165,7 @@ export function CustomInterviewFlow({ hasCredits, remaining }: { hasCredits: boo
   return (
     <div className="space-y-4">
       {state.phase === "idle" && (
-        <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-black/20 px-5 py-10 text-center hover:border-black/35">
+        <label className="flex cursor-pointer flex-col items-center gap-2 rounded-[var(--radius-card)] border border-dashed border-[var(--color-line-strong)] bg-[var(--color-raised)]/60 px-5 py-12 text-center transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-wash)]">
           <span className="text-sm font-medium">Choose a file to upload</span>
           <span className="text-xs text-[var(--color-muted)]">PDF, DOCX, or TXT — up to {MAX_MB}MB</span>
           <input
@@ -213,7 +213,7 @@ function DocPanel({
   onCancel: () => void; onRetryUpload: () => void;
 }) {
   return (
-    <div className="space-y-4 rounded-xl border border-black/8 px-5 py-5">
+    <div className="space-y-4 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-raised)] px-5 py-5 shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between">
         <p className="truncate text-sm font-medium">{doc.filename}</p>
         {!busy && doc.status !== "generated" && (
@@ -299,7 +299,7 @@ function DocPanel({
       {!busy && doc.status === "generated" && (
         <div className="space-y-3">
           <p className="text-sm text-emerald-700">Your interview is ready.</p>
-          <button onClick={onStart} className="w-full rounded-lg bg-[var(--color-accent)] px-3.5 py-2.5 text-sm font-medium text-white">
+          <button onClick={onStart} className="w-full rounded-full bg-[var(--color-accent)] px-3.5 py-2.5 text-sm font-semibold text-white">
             Start interview
           </button>
         </div>

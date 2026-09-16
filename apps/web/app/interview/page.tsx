@@ -272,18 +272,18 @@ function InterviewPageInner() {
   if (fatalError) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="text-xl font-semibold">Something went wrong</h1>
+        <h1 className="font-display text-3xl">Something went wrong</h1>
         <p className="text-sm text-[var(--color-muted)]">{fatalError.message}</p>
         <div className="flex gap-2.5">
           {fatalError.retryable && (
             <button
               onClick={retry}
-              className="rounded-lg bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white"
+              className="rounded-full bg-[var(--color-accent)] px-4 py-2.5 text-sm font-semibold text-white"
             >
               Try again
             </button>
           )}
-          <a href="/dashboard" className="rounded-lg border border-black/12 px-4 py-2.5 text-sm font-medium hover:bg-black/[0.04]">
+          <a href="/dashboard" className="rounded-full border border-[var(--color-line-strong)] px-4 py-2.5 text-sm font-medium hover:bg-[var(--color-sunken)]">
             Back to dashboard
           </a>
         </div>
@@ -308,7 +308,7 @@ function InterviewPageInner() {
               ✓
             </div>
             <div>
-              <h1 className="text-xl font-semibold">
+              <h1 className="font-display text-2xl">
                 {completedFully ? "Interview complete" : "Interview ended"}
               </h1>
               <p className="text-sm text-[var(--color-muted)]">

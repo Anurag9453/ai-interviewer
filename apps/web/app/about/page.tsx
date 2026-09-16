@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { buttonClass, Card, Eyebrow } from "@/components/ui";
 import { PublicFooter } from "@/components/PublicFooter";
+import { PublicHeader } from "@/components/PublicHeader";
 
 export const metadata: Metadata = {
   title: "About · AI Interviewer",
@@ -20,10 +21,11 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <>
-      <main className="mx-auto max-w-3xl px-5 pt-14 sm:px-6 sm:pt-20">
+      <PublicHeader current="about" />
+      <main className="mx-auto max-w-3xl px-5 pt-12 sm:px-6 sm:pt-16">
         <header className="animate-rise">
           <Eyebrow>About</Eyebrow>
-          <h1 className="mt-3 text-[32px] font-semibold leading-[1.15] sm:text-4xl">
+          <h1 className="font-display mt-3 text-[36px] leading-[1.12] sm:text-5xl">
             Interview practice you do out loud.
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-[var(--color-muted)] sm:text-base">
@@ -158,12 +160,12 @@ export default function AboutPage() {
           </Card>
         </section>
 
-        <section className="mt-12 rounded-[var(--radius-card)] bg-[var(--color-sunken)] px-6 py-8 text-center">
-          <p className="text-base font-medium">Two interviews are free.</p>
-          <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-[var(--color-muted)]">
+        <section className="mt-12 rounded-[28px] bg-[var(--color-ink)] px-6 py-10 text-center text-white">
+          <p className="font-display text-3xl">Two interviews are free.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-white/65">
             No card required to try it. See how it feels to answer out loud.
           </p>
-          <Link href="/login" className={`${buttonClass.primary} mt-5 px-5 py-3`}>
+          <Link href="/login" className={`${buttonClass.primary} mt-6 px-5 py-3`}>
             Start practising
           </Link>
         </section>

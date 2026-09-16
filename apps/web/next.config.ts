@@ -1,7 +1,9 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   // @ai/core ships TypeScript source, not a build step (see its package.json
   // exports: "." -> "./src/index.ts"). tsc resolves the package's internal
   // ".js"-suffixed relative imports (NodeNext-style ESM specifiers) straight
